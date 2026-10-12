@@ -1,0 +1,22 @@
+# Virtual environment
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment and secrets
+.env
+*.pem
+*.key
+
+# SQLite database & runtime data
+data/
+*.db
+*.sqlite3
+
+# Runtime outputs (preserving sample artifacts in submissions/ and reports/)
+temp/
+tmp/
+.pytest_cache/
+.coverage
+htmlcov/

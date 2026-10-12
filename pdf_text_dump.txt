@@ -1,0 +1,340 @@
+=== PAGE 1 ===
+Jyot AI Generalist Technical Assignment 
+Agentic Multimodal Monitor with OCR: Live Discussion Monitor & Digest  
+Confidential. Candidate-facing. Do not circulate. 
+  
+Role AI Generalist (agentic systems, document 
+intelligence/OCR, applied LLM engineering) 
+Issued by Jyot, AI Division 
+Issue date Friday, 9 October 2026 
+Submission deadline Tuesday, 13 October 2026, 23:59 your local time 
+(4 days from receipt) 
+Contact for clarifications ai@jyot.in 
+This document and its contents are confidential and intended solely for the shortlisted candidate. Do 
+not redistribute or discuss the contents publicly. 
+1. Context & Background 
+Jyot builds AI-driven products spanning intelligent document/OCR pipelines, media processing systems, 
+and real-time communication tooling. An AI Generalist here is expected to move across all three: 
+reading messy real-world documents and images, reasoning over them with LLMs, and wrapping the 
+result in a reliable, observable, safe system. 
+Because the role spans agentic AI and document intelligence, we have extended the assignment in two 
+ways: (1) the content you ingest includes images and scanned documents, so OCR is a first-class 
+component, and (2) the processing core must be a genuine agent that decides what to do per item, 
+rather than a fixed script that calls an LLM at the end. No knowledge of our internal codebase, data, or 
+domain is required. 
+2. How This Assignment Works 
+There is a single assignment for you. You are free to choose the source, topic, models, and frameworks, 
+and every choice you make should be justified. We would rather see a smaller scope executed 
+rigorously, with honest measurement, than a broad scope that only works on the happy path. 
+Please note that we place heavy weight on evidence. Claims such as "the agent handles prompt 
+injection" or "OCR is accurate" must be backed by tests and numbers produced by your own evaluation 
+harness (Section 6). 
+
+=== PAGE 2 ===
+3. Objective 
+Build an agentic pipeline that repeatedly ingests posts (text and image/PDF attachments) from public 
+sources, extracts text from visual content using OCR, classifies and deduplicates items (including cross-
+modal duplicates, such as the same announcement posted once as text and once as a screenshot), 
+scores relevance and urgency, and produces a prioritised, evidence-linked digest, with a human-
+approval-gated alert for high-priority items. 
+The system must be safe against hostile content (including instructions hidden inside images), bounded 
+in cost, resumable after failure, and measurable. 
+The objective in plain terms 
+Imagine a small team that must stay on top of one online topic (for example, product-recall notices) but 
+cannot read hundreds of posts a day, many of them screenshots or scanned notices. You are building 
+the assistant that does the reading for them: it collects new posts, reads the text inside images, merges 
+duplicates, decides how much each story matters, and hands the team a short ranked digest. If 
+something looks urgent, it drafts an alert, but a human must approve it before anything is sent. 
+We are less interested in the digest itself than in how the system decides, protects itself, and proves it 
+works. In short, we are testing three things: 
+1. Real agent decisions: the system chooses which tool to use per item, when to retry with 
+another approach, and when to stop, within a fixed budget. 
+2. Safe and reliable behaviour on bad input: blurry or rotated images, instructions hidden inside 
+images, rate limits, crashes, and malformed files. 
+3. Honest measurement: numbers for OCR accuracy, classification, deduplication, and attack 
+resistance, including where the system fails. 
+End-to-end flow 
+Every item enters the same loop, but the agent decides how far each one goes. A plain text post may 
+finish in one step; a blurry screenshot may trigger a second OCR engine; an urgent claim may trigger 
+verification before an alert is proposed. 
+
+=== PAGE 3 ===
+ 
+agent flow · 1 loop, 1 human gate 
+The highlighted boxes mark where judgment happens: the planner decides each next step, and a human 
+decides whether any alert is sent. 
+User journey 
+The "user" is the person on the team who receives the digest and approves alerts. The journey below 
+shows what they do and what the system does behind the scenes at each point. Reviewers (us) will walk 
+the same path using your replay mode, then inspect your traces and evaluation report. 
+
+
+=== PAGE 4 ===
+ 
+user journey · 5 stages, 3 lanes 
+The user acts at setup, run, and approval; the agent handles everything between. The bottom row is 
+what we will check at each stage when we run your replay mode. 
+4. Task Description 
+Stage 1: Ingestion (repeatable, replayable) 
+• Choose at least two public, authentication-light sources, of which at least one must regularly 
+contain image or PDF attachments (examples: Reddit image posts via the public JSON endpoints, 
+Mastodon public hashtag timelines, RSS feeds with enclosures, Wikimedia Commons, public 
+government or notice-board RSS feeds). Pick a topic scope of your choice (for example: product 
+recalls and safety notices, outage reports, scholarship/job notices, local civic alerts). 
+• The ingester must be runnable repeatedly (poll or scheduled) and fetch only new items (track 
+cursors or seen IDs persistently). 
+• Replay mode is mandatory. Implement --replay <dir>, which runs the whole pipeline on 
+recorded fixtures (JSON + image/PDF files) with no network access. Evaluators will run your 
+system on a held-out fixture pack in this mode. 
+Stage 2: OCR and visual extraction 
+• Implement OCR for image attachments and for scanned/image-only PDF pages. 
+• Use at least two extraction engines and a router that chooses between them. For example: a 
+classical OCR engine (Tesseract, PaddleOCR, EasyOCR, docTR) and a vision-capable LLM. The 
+router must make an explicit, logged decision based on signals such as image quality, OCR 
+confidence, text density, script/language, or layout type. 
+• Include a preprocessing stage appropriate to the content (for example: deskew/rotation 
+detection, denoise, binarisation, resolution upscaling, cropping of screenshot chrome). Show 
+with measurements that preprocessing helps (or does not). 
+
+
+=== PAGE 5 ===
+• Handle at least: (a) screenshots of text, (b) photographed/rotated or low-contrast images, (c) a 
+scanned PDF with more than one page, and (d) one non-English or non-Latin script of your 
+choice (for example Hindi or Gujarati), alongside English. 
+• For at least one document type that has structure (for example a notice, receipt, table, or form), 
+extract structured fields into a JSON schema with validation, and flag fields the model could not 
+read confidently instead of guessing. 
+• Every OCR result must carry: engine used, confidence (calibrated or at least documented), 
+language, and a flag for "needs second opinion". 
+Stage 3: The agent (the core of the assignment) 
+Build an agent loop in which a planner/controller (LLM-driven) decides, per item, which tools to call, in 
+what order, and when to stop. A fixed linear chain of fixed steps does not satisfy this stage. 
+Minimum tool set (you may add more): 
+Tool Purpose 
+fetch_attachment Safely download an image/PDF/linked page (with 
+size, type, timeout, and SSRF restrictions) 
+ocr_extract Run a chosen OCR engine with chosen 
+preprocessing, returning text, confidence, and 
+layout 
+vision_describe Ask a vision model about an image when OCR is 
+insufficient (charts, diagrams, handwriting) 
+search_memory Query the persistent store for similar past items 
+and clusters 
+verify_claim Cross-check an urgent claim against a second 
+source or item before raising urgency 
+propose_alert Create an alert proposal (never sends directly; 
+see Stage 7) 
+Requirements: 
+• Bounded autonomy: a maximum step count per item, a per-item and per-run token/cost 
+budget, and graceful degradation when a budget is hit (for example: lower-cost path, mark item 
+"partially processed"). 
+• Variable trajectories: your logs must demonstrate at least three clearly different trajectories on 
+real inputs (for example: text-only post resolved in one step; blurry screenshot that triggers re-
+OCR with a different engine; urgent claim that triggers verify_claim). 
+• Structured outputs: all LLM outputs are schema-validated (for example with Pydantic), with 
+bounded retries and a deterministic fallback on repeated failure. 
+• Self-checking: for items scored above your urgency threshold, add a critique, self-consistency, 
+or verifier step, and show whether it changed outcomes. 
+
+=== PAGE 6 ===
+• Full tracing: every run writes a JSONL trace (item ID, step, tool, arguments, result summary, 
+tokens, latency, cost, decision rationale) that a reviewer can replay. 
+• Framework choice is free (LangGraph, a custom loop, or another approach). If you use a 
+framework, state what it gave you; if you hand-roll the loop, state why. 
+Stage 4: Classification, scoring, and deduplication 
+• Tag each item by subtopic (taxonomy of your design; document it). 
+• Score relevance and urgency with an LLM/prompt-based approach, and include at least one 
+non-LLM signal in the final score (for example recency, source credibility, engagement velocity, 
+corroboration count). Explain the combination logic. 
+• Deduplicate across modalities and phrasing: near-identical text posts, reposts, and the same 
+content as image vs text. Use at least two techniques (for example embeddings + MinHash for 
+text, perceptual hash for images, OCR-text embedding for cross-modal matches). Group related 
+items into story clusters rather than merely dropping duplicates, and keep the best-quality 
+representative. 
+• Maintain persistent memory across runs so that the next digest can state what is new, what 
+escalated, and what was already reported. 
+Stage 5: Safety and adversarial robustness 
+All content, including text recovered from images, is untrusted data. Implement and test: 
+• Prompt injection via OCR: images containing text such as instructions to the AI, to raise its own 
+score, or to call tools. The agent must not follow them, and your tests must show it. Describe 
+your isolation strategy (for example: separating data from instructions, restricting tool 
+permissions while processing untrusted content, output validation). 
+• PII handling: detect and redact emails, phone numbers, and similar identifiers recovered from 
+screenshots before they reach the digest or alerts. 
+• Network safety: allow-listed schemes, blocked private IP ranges, response size limits, content-
+type verification. 
+• Spam/manipulation: a defence against low-quality, repetitive, or coordinated posts (state the 
+approach and its limits). 
+Stage 6: Reliability and cost control 
+• Handle rate limits (backoff with jitter, respect Retry-After), timeouts, malformed files, and 
+model errors with graceful fallbacks and logging. 
+• Runs must be idempotent and resumable: killing the process mid-run and restarting must not 
+duplicate work or digest entries. 
+• Cache OCR and LLM results by content hash. 
+• Implement a --fault-injection flag that randomly or deterministically simulates failures 
+(HTTP 429/500, corrupted image, OCR engine crash, LLM returning invalid JSON) so that 
+robustness can be demonstrated. 
+
+=== PAGE 7 ===
+Stage 7: Human-in-the-loop alerting 
+• The agent may only propose alerts. Proposals are written to an approval queue (a file or simple 
+CLI/web view is sufficient). A human approves or rejects, and only then is the alert emitted 
+(console, webhook stub, or file write; no real SMS/WhatsApp needed). 
+• Each proposal must include the evidence: source link, extracted text snippet or image reference, 
+confidence, verification result, and why the urgency threshold was met. 
+Stage 8: Digest 
+• Generate a prioritised top-N digest (Markdown, HTML, or PDF) grouped by story cluster, 
+including: score breakdown, source links, evidence snippets from OCR where relevant 
+(redacted), flags such as "low OCR confidence" or "unverified", and a "what changed since last 
+digest" section. 
+5. Required Command-Line Contract 
+To allow us to run all submissions uniformly, your repository must support these commands (you may 
+add more, and a Makefile or equivalent is welcome): 
+python -m <yourpkg> run --live --sources <config> --top-n 10 
+python -m <yourpkg> run --replay <fixtures_dir> --top-n 10 --budget-usd 1.00 
+python -m <yourpkg> run --replay <fixtures_dir> --fault-injection 
+python -m <yourpkg> eval --gold <gold_dir>        # runs your evaluation harness 
+python -m <yourpkg> approve <proposal_id>         # human approval of an alert 
+proposal 
+The replay and eval commands must work offline using a free/open-source configuration (see Section 
+9). 
+6. Evaluation Harness (you build it, we read it) 
+Build a small but honest evaluation suite and report the numbers. Minimum expectations: 
+Area Minimum gold data Metrics to report 
+OCR 15 or more images/pages with 
+hand-written ground-truth 
+transcriptions, including at least 
+3 hard cases and 3 in your non-
+English script 
+Character error rate (CER) and 
+word error rate (WER) per 
+engine and for the routed 
+system; effect of preprocessing 
+Classification 60 or more labelled items (25 or 
+more with image content) 
+Per-class precision/recall and 
+macro-F1; confusion matrix 
+Urgency scoring Same set, with urgency labels Rank correlation or agreement 
+with your labels; calibration 
+comments 
+
+=== PAGE 8 ===
+Area Minimum gold data Metrics to report 
+Deduplication 10 or more known duplicate 
+groups, including cross-modal 
+ones 
+Pairwise precision/recall; false 
+merge examples 
+Injection/safety 8 or more adversarial cases 
+(text and image-embedded) 
+Attack success rate (target 0), 
+plus a list of what still fails 
+Agent behaviour Entire gold set Average steps and tool calls per 
+item, cost per item, 
+failure/fallback rate, and an 
+ablation: your agent vs a fixed-
+pipeline baseline on quality and 
+cost 
+You may build the gold set yourself (smaller, honest sets are acceptable; state their limits). Report 
+uncertainty where sample sizes are small. We value a candidate who identifies and reports their 
+system's failures over one who reports only successes. 
+7. Deliverables 
+1. Complete, runnable codebase, modular, with comments on key logic, and a README with setup 
+and run instructions. 
+2. Fixtures: your recorded fixture set (JSON + attachments) and your gold data, or the generation 
+method. 
+3. Sample outputs: one digest from a live or recorded-live run, one digest from a replay run, and 
+one from a fault-injection run. 
+4. Trace logs: JSONL traces for the sample runs, plus a short annotated walkthrough of five items 
+showing different agent trajectories. 
+5. Prompt documentation: the exact prompts used (OCR routing/vision, classification, scoring, 
+verification, critique, planner), each with rationale and what you tried before. 
+6. Evaluation report with the tables from Section 6. 
+7. Write-up (800 to 1,200 words): architecture; agent design and why it beats (or does not beat) a 
+fixed pipeline; OCR strategy and trade-offs; injection threat model; scaling plan (rate limits, 
+spam, queueing, cost at 100x volume); known limitations; what you would do with another two 
+weeks. 
+8. requirements.txt or equivalent, and optionally a Dockerfile. 
+9. Encouraged, not mandatory: a 3 to 5 minute screen recording of a complete run, including a 
+fault-injection run and an alert approval. 
+8. Shared Technical Requirements & Constraints 
+  
+Primary language Python 3.9+ (or a language you state a clear 
+rationale for) 
+
+=== PAGE 9 ===
+  
+Time limit 4 days from receipt of this document 
+AI/LLM use Any commercial or open-source model, including 
+vision models. Justify your choices and report 
+cost/latency trade-offs 
+Error handling Graceful fallback on failures; structured logging 
+required 
+Code quality Clean, modular, typed where sensible, with tests 
+for core logic 
+Credentials Environment variables only; never hardcode API 
+keys. Provide a .env.example 
+9. Submission Instructions 
+• State clearly at the top of your submission that you chose Track B (Extended), AI Generalist 
+assignment for Jyot. 
+• Submit as a compressed archive (.zip) or a linked private repository (GitHub/GitLab) with access 
+granted to the evaluating team. 
+• Include everything needed to run the system from scratch, including fixtures. 
+• If you use paid APIs, include instructions and configuration for a free or local alternative (for 
+example Tesseract/PaddleOCR plus a small open-source LLM via Ollama or similar) so evaluators 
+can reproduce results. Using open-source models to avoid API costs is acceptable and will not be 
+penalised, provided you report the quality difference honestly. 
+• Please disclose any use of AI coding assistants in building the solution and describe where you 
+verified or corrected their output. We do not penalise use; we do assess your understanding of 
+what you submit, and you should expect to walk us through your design in a follow-up 
+discussion. 
+10. Evaluation Criteria 
+Criterion Weight What we look for 
+Agent design and autonomy 25% Real tool-choice decisions, 
+bounded loops, budgets, 
+tracing, distinct trajectories, 
+justified benefit over a fixed 
+pipeline 
+OCR and document extraction 20% Multi-engine routing, 
+preprocessing evidence, 
+multilingual handling, 
+structured extraction with 
+
+=== PAGE 10 ===
+Criterion Weight What we look for 
+uncertainty flags, measured 
+CER/WER 
+Safety and robustness 15% Injection resistance (tested), PII 
+redaction, network safety, fault 
+tolerance, idempotent 
+resumable runs 
+Evaluation rigor and honesty 15% Sensible gold data, correct 
+metrics, ablation, candid 
+reporting of failures and small-
+sample caveats 
+Dedup, memory, and scoring 10% Cross-modal clustering, 
+persistent state, defensible 
+score combination 
+Code quality and structure 5% Modularity, tests, readability, 
+reproducibility 
+Write-up and engineering 
+judgment 
+10% Trade-offs, scaling thinking, 
+clarity, awareness of limits 
+Our held-out fixture pack will test behaviours you cannot tune to in advance (unseen images, a rotated 
+or degraded scan, an image-embedded injection attempt, a cross-modal duplicate, a simulated rate 
+limit, and a malformed PDF). Robustness on unseen inputs counts for more than polish on your own 
+examples. 
+11. Tips & Guidance for Candidates 
+• Think system-first, code-second. Decide the agent's tool contract and the trace format before 
+writing prompts. 
+• Prioritise robustness over completeness. A smaller scope that degrades gracefully beats a brittle 
+system that attempts everything. 
+• Measure before you claim. If something does not help (for example a preprocessing step, or the 
+agent loop on simple items), say so; this is a positive signal. 
+• Treat OCR output as noisy and as hostile. Never let recovered text act as instructions. 
+• Keep cost visible. Know what a digest costs and where the money goes. 
+• Document your reasoning, not just your code. We care as much about how you think through 
+trade-offs as about the final output. 
+ 
+

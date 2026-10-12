@@ -1,0 +1,39 @@
+{
+  "topic": "Public Safety, Product Recalls & Civic Alerts",
+  "sources": [
+    {
+      "source_id": "cpsc_recalls_rss",
+      "name": "US Consumer Product Safety Commission Recalls",
+      "type": "rss",
+      "url": "https://www.cpsc.gov/Newsroom/CPSC-RSS-Feed/Recalls-RSS",
+      "poll_interval_seconds": 3600,
+      "enabled": true,
+      "extract_enclosures": true
+    },
+    {
+      "source_id": "usda_recalls_rss",
+      "name": "USDA Food Safety and Inspection Service Recalls",
+      "type": "rss",
+      "url": "https://www.fsis.usda.gov/rss/recalls.xml",
+      "poll_interval_seconds": 3600,
+      "enabled": true,
+      "extract_enclosures": true
+    },
+    {
+      "source_id": "openfda_enforcement_json",
+      "name": "openFDA Drug & Food Enforcement Reports",
+      "type": "public_json",
+      "url": "https://api.fda.gov/drug/enforcement.json?limit=10",
+      "poll_interval_seconds": 3600,
+      "enabled": true,
+      "items_path": "results",
+      "field_mapping": {
+        "id": "recall_number",
+        "title": "product_description",
+        "text": "reason_for_recall",
+        "url": "openfda.application_number",
+        "published_at": "recall_initiation_date"
+      }
+    }
+  ]
+}

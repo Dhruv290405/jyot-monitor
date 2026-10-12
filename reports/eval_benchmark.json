@@ -1,0 +1,46 @@
+{
+  "benchmark_metadata": {
+    "dataset": "data/sample_dataset",
+    "total_samples": 6,
+    "tesseract_available": false,
+    "vision_model_status": "Ollama offline (HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded with url: /api/tags (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=11434) at 0x1bf52d07380>, 'Connection to localhost timed out. (connect timeout=1.0)')))"
+  },
+  "ocr_metrics": {
+    "samples_evaluated": 4,
+    "with_preprocessing": {
+      "mean_cer": 1.0,
+      "mean_wer": 1.0
+    },
+    "without_preprocessing": {
+      "mean_cer": 1.0,
+      "mean_wer": 1.0
+    },
+    "preprocessing_improvement_pct": {
+      "cer_reduction_pct": 0.0
+    }
+  },
+  "classification_metrics": {
+    "accuracy": 0.6667,
+    "macro_precision": 0.75,
+    "macro_recall": 0.8333,
+    "macro_f1": 0.7895
+  },
+  "ranking_metrics": {
+    "ndcg_at_5": 0.9999,
+    "ndcg_at_10": 0.9999
+  },
+  "adversarial_security_metrics": {
+    "prompt_injection_detection_rate": 1.0,
+    "pii_redaction_rate": 1.0,
+    "ssrf_protection": "Enforced (Private/loopback IP validation active)"
+  },
+  "system_performance": {
+    "latency_seconds": {
+      "min": 0.0,
+      "p50": 0.003,
+      "p95": 0.038,
+      "max": 2.046
+    },
+    "estimated_cost_usd": 0.0018
+  }
+}
