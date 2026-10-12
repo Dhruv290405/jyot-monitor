@@ -43,9 +43,11 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(na
 logger = logging.getLogger("jyot_monitor")
 
 
-def build_system(db_path: str, is_replay: bool = False, run_id: Optional[str] = None):
+def build_system(db_path: str, is_replay: bool = False, run_id: Optional[str] = None, fault_injection: bool = False):
     """Instantiates and wires all system components."""
     config = get_config()
+    if fault_injection:
+        config.fault_injection_enabled = True
     db = Database(db_path=db_path)
     preprocessor = ImagePreprocessor()
     tesseract_engine = TesseractEngine(
@@ -88,6 +90,7 @@ def build_system(db_path: str, is_replay: bool = False, run_id: Optional[str] = 
         safe_fetcher=safe_fetcher,
         pdf_processor=pdf_processor,
         is_replay_mode=is_replay,
+        fault_injection=fault_injection,
     )
 
     actual_run_id = run_id or f"run_{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}_{uuid.uuid4().hex[:6]}"
@@ -136,7 +139,13 @@ def build_system(db_path: str, is_replay: bool = False, run_id: Optional[str] = 
 def handle_run(args) -> int:
     """Executes ingestion, agent processing, clustering, and digest generation."""
     is_replay = bool(args.replay)
-    sys_components = build_system(db_path=args.db, is_replay=is_replay)
+    fault_injection = getattr(args, "fault_injection", False)
+    if fault_injection and not is_replay:
+        print("Error: --fault-injection can only be used with --replay", file=sys.stderr)
+        return 1
+    if fault_injection:
+        logger.info("Fault-injection mode enabled for replay run")
+    sys_components = build_system(db_path=args.db, is_replay=is_replay, fault_injection=fault_injection)
     db: Database = sys_components["db"]
     controller: AgentController = sys_components["controller"]
     clusterer: StoryClusterer = sys_components["clusterer"]
@@ -276,6 +285,7 @@ def main():
     run_parser.add_argument("--digest", type=str, required=True, help="Destination Markdown digest file path")
     run_parser.add_argument("--max-items", type=int, default=None, help="Maximum items to ingest")
     run_parser.add_argument("--db", type=str, default="data/jyot_monitor.db", help="SQLite database path")
+    run_parser.add_argument("--fault-injection", action="store_true", help="Inject controlled deterministic failure during replay runs only (implies --replay)")
 
     # 2. approve command
     approve_parser = subparsers.add_parser("approve", help="Approve an alert proposal from the queue")

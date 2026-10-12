@@ -113,6 +113,7 @@ class ToolRegistry:
         safe_fetcher: SafeFetcher,
         pdf_processor: PDFProcessor,
         is_replay_mode: bool = False,
+        fault_injection: bool = False,
     ):
         self.db = db
         self.router = router
@@ -124,6 +125,7 @@ class ToolRegistry:
         self.safe_fetcher = safe_fetcher
         self.pdf_processor = pdf_processor
         self.is_replay_mode = is_replay_mode
+        self.fault_injection = fault_injection
 
     def execute_tool(
         self,
@@ -154,6 +156,14 @@ class ToolRegistry:
 
         # Tool 2: ocr_extract
         elif tool_name == "ocr_extract":
+            if self.is_replay_mode and self.fault_injection:
+                return OCRExtractOutput(
+                    success=False,
+                    error="fault-injection-simulated-ocr-failure",
+                    engine="tesseract",
+                    needs_second_opinion=True,
+                ).model_dump()
+
             try:
                 args = OCRExtractInput.model_validate(arguments)
                 if not context_item.attachments or args.attachment_index >= len(context_item.attachments):

@@ -1,9 +1,9 @@
 {
   "benchmark_metadata": {
-    "dataset": "data/sample_dataset",
+    "dataset": "data\\sample_dataset",
     "total_samples": 6,
     "tesseract_available": false,
-    "vision_model_status": "Ollama offline (HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded with url: /api/tags (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=11434) at 0x1bf52d07380>, 'Connection to localhost timed out. (connect timeout=1.0)')))"
+    "vision_model_status": "Ollama offline (HTTPConnectionPool(host='localhost', port=11434): Max retries exceeded with url: /api/tags (Caused by ConnectTimeoutError(<HTTPConnection(host='localhost', port=11434) at 0x2147fa47380>, 'Connection to localhost timed out. (connect timeout=1.0)')))"
   },
   "ocr_metrics": {
     "samples_evaluated": 4,
@@ -37,9 +37,9 @@
   "system_performance": {
     "latency_seconds": {
       "min": 0.0,
-      "p50": 0.003,
-      "p95": 0.038,
-      "max": 2.046
+      "p50": 0.004,
+      "p95": 0.041,
+      "max": 2.071
     },
     "estimated_cost_usd": 0.0018
   }

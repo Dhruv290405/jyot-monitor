@@ -1,5 +1,5 @@
 # 🚨 Jyot Public Safety & Recall Intelligence Digest
-**Run ID:** `run_20261011_195049_cced8f` | **Mode:** `replay` | **Generated:** 2026-10-11 19:50:49 UTC
+**Run ID:** `run_20261012_112015_7d221f` | **Mode:** `replay` | **Generated:** 2026-10-12 11:20:15 UTC
 **Total Stories Monitored:** 6 | **Top Stories Displayed:** 6 | **Alert Proposals Pending Human Review:** 0
 
 ---
